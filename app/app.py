@@ -2,6 +2,7 @@ import socketserver
 
 from kubernetes import client, config
 from http.server import BaseHTTPRequestHandler
+from prettytable import PrettyTable
 
 
 class AppHandler(BaseHTTPRequestHandler):
@@ -13,12 +14,15 @@ class AppHandler(BaseHTTPRequestHandler):
         """Catch all incoming GET requests"""
         if self.path == "/healthz":
             self.healthz()
+        elif self.path == "/deployment/status":
+            self.deployment_status()
+        # elif self.path == "/deployment/status":
+        #     self.deployment_status()
         else:
             self.send_error(404)
 
     def healthz(self):
         """Responds with the health status of the application"""
-        print(self.kube_config)
         self.respond(200, "ok")
 
     def respond(self, status: int, content: str):
@@ -31,7 +35,20 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def deployment_status(self, namespace='all'):
         """Responds with the status of the deployment"""
-        self.respond(200, "ok")
+        config.load_kube_config(self.kube_config)
+        kube_api_client = client.AppsV1Api()
+
+        if namespace == 'all':
+            deployments = kube_api_client.list_deployment_for_all_namespaces()
+        else:
+            deployments = kube_api_client.list_namespaced_deployment(namespace)
+
+        table = PrettyTable(['Deployment Name', 'Expected Replicas', 'Ready Replicas', 'Unavailable Replicas'])
+        for deployment in deployments.items:
+            table.add_row([deployment.metadata.name, deployment.status.replicas, deployment.status.ready_replicas,
+                           deployment.status.unavailable_replicas])
+
+        self.respond(200, table.get_string())
 
 
 def get_kubernetes_version(api_client: client.ApiClient) -> str:
