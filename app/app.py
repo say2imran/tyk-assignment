@@ -3,7 +3,7 @@ import socketserver
 from kubernetes import client, config
 from http.server import BaseHTTPRequestHandler
 from prettytable import PrettyTable
-
+from urllib.parse import urlparse, parse_qs
 
 class AppHandler(BaseHTTPRequestHandler):
     def __init__(self, kube_config, *args, **kwargs):
@@ -12,12 +12,22 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Catch all incoming GET requests"""
+        seperator = self.path.find('?')
+        url_path = self.path[:seperator] if seperator != -1 else self.path
+        query_vars = parse_qs(urlparse(self.path).query)
+
         if self.path == "/healthz":
             self.healthz()
-        elif self.path == "/deployment/status":
-            self.deployment_status()
+
+        elif url_path == "/deployments/status":
+            # If namespace has been providedin the query string, then use it to filter deployments
+            if query_vars.get('namespace'):
+                self.deployment_status(query_vars.get('namespace')[0])
+            else:
+                self.deployment_status()
         # elif self.path == "/deployment/status":
         #     self.deployment_status()
+
         else:
             self.send_error(404)
 
@@ -33,12 +43,12 @@ class AppHandler(BaseHTTPRequestHandler):
 
         self.wfile.write(bytes(content, "UTF-8"))
 
-    def deployment_status(self, namespace='all'):
+    def deployment_status(self, namespace=None):
         """Responds with the status of the deployment"""
         config.load_kube_config(self.kube_config)
         kube_api_client = client.AppsV1Api()
-
-        if namespace == 'all':
+        print(namespace)
+        if namespace is None:
             deployments = kube_api_client.list_deployment_for_all_namespaces()
         else:
             deployments = kube_api_client.list_namespaced_deployment(namespace)
