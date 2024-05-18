@@ -44,7 +44,8 @@ class TestAppHandler(unittest.TestCase):
         super().setUp()
 
         port = self._get_free_port()
-        self.mock_server = TCPServer(("localhost", port), app.AppHandler)
+        self.kubeconfig = "test/path"
+        self.mock_server = TCPServer(("localhost", port), lambda *args, **kwargs:app.AppHandler(self.kubeconfig, *args, **kwargs))
 
         # Run the mock TCP server with AppHandler on a separate thread to avoid blocking the tests.
         self.mock_server_thread = Thread(target=self.mock_server.serve_forever)
