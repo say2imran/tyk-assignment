@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: busybox-prod
+  name: busybox-prod
+  namespace: nsprod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox-prod
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: busybox-prod
+    spec:
+      containers:
+      - image: busybox
+        name: busybox
+        command:
+          - "sh"
+          - "-c"
+          - "while true; do sleep 3600; done"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+status: {}
+
+---
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  name: nsprod
+spec: {}
+status: {}
