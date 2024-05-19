@@ -1,0 +1,20 @@
+{
+  "apiVersion": "projectcalico.org/v3",
+  "kind": "NetworkPolicy",
+  "metadata": {
+    "name": "allow-tcp-on-port",
+    "namespace": "target-namespace"
+  },
+  "spec": {
+    "selector": "target-label == 'target-label-value'",
+    "ingress": [
+      {
+        "action": "Allow or Deny",
+        "protocol": "TCP",
+        "source": {
+          "selector": "source-label == 'source-label-value'"
+        }
+      }
+    ]
+  }
+}

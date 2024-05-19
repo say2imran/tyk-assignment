@@ -1,0 +1,19 @@
+{
+  "apiVersion": "projectcalico.org/v3",
+  "kind": "NetworkPolicy",
+  "metadata": {
+    "name": "allow-deny-from-namespace",
+    "namespace": "target-namespace"
+  },
+  "spec": {
+    "types": ["Ingress"],
+    "ingress": [
+      {
+        "action": "Deny",
+        "source": {
+          "namespaceSelector": "projectcalico.org/name == 'nsprod'"
+        }
+      }
+    ]
+  }
+}

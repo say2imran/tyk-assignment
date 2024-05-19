@@ -1,0 +1,30 @@
+{
+  "apiVersion": "crd.projectcalico.org/v1",
+  "kind": "NetworkPolicy",
+  "metadata": {
+    "name": "deny-ingress-egress-between-namespaces-v1",
+    "namespace": "nsprod"
+  },
+  "spec": {
+    "selector": "app == 'busybox-prod'",
+    "types": ["Ingress", "Egress"],
+    "ingress": [
+      {
+        "action": "Deny",
+        "source": {
+          "namespaceSelector": "projectcalico.org/name == 'nsdev'",
+          "selector": "app == 'busybox-dev'"
+        }
+      }
+    ],
+    "egress": [
+      {
+        "action": "Deny",
+        "destination": {
+          "namespaceSelector": "projectcalico.org/name == 'nsdev'",
+          "selector": "app == 'busybox-dev'"
+        }
+      }
+    ]
+  }
+}
