@@ -4,6 +4,9 @@ from kubernetes import client, config
 from http.server import BaseHTTPRequestHandler
 from prettytable import PrettyTable
 from urllib.parse import urlparse, parse_qs
+import json
+import pprint
+import os
 
 
 class AppHandler(BaseHTTPRequestHandler):
@@ -32,8 +35,46 @@ class AppHandler(BaseHTTPRequestHandler):
         elif url_path == "/networkpolicies":
             self.get_network_polices()
 
+        # elif url_path == "/networkpolicies/disable":
+        #     self.get_network_polices()
+
         else:
             self.send_error(404)
+
+    def do_POST(self):
+        '''Reads post request body'''
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+
+        try:
+            user_data = json.loads(post_data)
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON")
+            return
+
+        if self.path == "/networkpolicy":
+            self.create_network_policy(user_data)
+        else:
+            self.send_error(404)
+
+    def do_PATCH(self):
+        '''Reads post request body'''
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        print("print patch data")
+        print(post_data)
+
+        try:
+            user_data = json.loads(post_data)
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON")
+            return
+
+        if self.path == "/networkpolicy":
+            self.update_network_policy(user_data)
+        else:
+            self.send_error(404)
+
 
     def healthz(self):
         """Responds with the health status of the application"""
@@ -67,37 +108,89 @@ class AppHandler(BaseHTTPRequestHandler):
     def get_network_polices(self):
         config.load_kube_config(self.kube_config)
         kube_api_client = client.NetworkingV1Api()
+        kube_api_client_custom = client.CustomObjectsApi()
+
         network_policies = kube_api_client.list_network_policy_for_all_namespaces()
         print (network_policies)
-        self.respond(200, **network_policies.items)
+        print (type(network_policies))
+        self.respond(200, str(network_policies))
 
-    def disable_traffic(self):
-        #kube_api_client = client.NetworkingV1alpha1Api
+    def create_network_policy(self, user_data):
+        calico_policy = read_calico_policy_json_file()
+        # Updating Source/Target Namespace/Labels in Calico policy json
+        calico_policy['metadata']['name'] = user_data['name']
+        calico_policy['metadata']['namespace'] = user_data['target_namespace']
+        calico_policy['spec']['selector'] = f"app == {user_data['target_app_label']}"
+
+        calico_policy["spec"]["ingress"][0]["action"] = user_data["action"]
+        calico_policy["spec"]["ingress"][0]["source"]["namespaceSelector"] = f"projectcalico.org/name == {user_data['source_namespace']}"
+        calico_policy["spec"]["ingress"][0]["source"]["selector"] = f"app == {user_data['source_app_label']}"
+
+        calico_policy["spec"]["egress"][0]["action"] = user_data["action"]
+        calico_policy["spec"]["egress"][0]["destination"]["namespaceSelector"] = f"projectcalico.org/name == {user_data['source_namespace']}"
+        calico_policy["spec"]["egress"][0]["destination"]["selector"] = f"projectcalico.org/name == {user_data['source_app_label']}"
+        # pprint.pprint(calico_policy)
+
         kube_api_client = client.CustomObjectsApi()
-        kube_api_client.create_cluster_custom_object()
-        #from kubernetes.client import CustomObjectsApi
-        group = "crd.projectcalico.org"
-        v = "v3"
-        plural = "networkpolicies"
-        #kube_api_client.
-        global_network_sets = kube_api_client.list_cluster_custom_object(group, v, plural)
-        print(global_network_sets)
-        # kube_api_client.create_namespaced_custom_object(
-        #     group="projectcalico.org",
-        #     version="v3",
-        #     namespace="target-namespace",
-        #     plural="networkpolicies",
-        #     body=calico_policy_object
-        # )
+        print("INFO: Creating resource")
+        try:
+            api_response = kube_api_client.create_namespaced_custom_object(
+                group ="crd.projectcalico.org",
+                version="v1",
+                namespace=user_data['target_namespace'],
+                plural="networkpolicies",
+                body=calico_policy,
+                pretty=True
+            )
+            self.respond(201, "Resource created")
+        except client.exceptions.ApiException as e:
+            self.respond(e.status, e.body)
+        print("INFO: Done with policy creation")
 
-        # api_response = api_instance.create_namespaced_custom_object(
-        #     group="crd.projectcalico.org",
-        #     version="v1",
-        #     namespace="default",
-        #     plural="networkpolicies",
-        #     body=calico_policy,
-        #     pretty=True
-        # )
+    def update_network_policy(self, user_data):
+        #kube_api_client = client.NetworkingV1alpha1Api
+
+        calico_policy = read_calico_policy_json_file()
+
+        # Updating Source/Target Namespace/Labels in Calico policy json
+        calico_policy['metadata']['name'] = user_data['name']
+        calico_policy['metadata']['namespace'] = user_data['target_namespace']
+        calico_policy['spec']['selector'] = f"app == {user_data['target_app_label']}"
+
+        calico_policy["spec"]["ingress"][0]["action"] = user_data["action"]
+        calico_policy["spec"]["ingress"][0]["source"]["namespaceSelector"] = f"projectcalico.org/name == {user_data['source_namespace']}"
+        calico_policy["spec"]["ingress"][0]["source"]["selector"] = f"app == {user_data['source_app_label']}"
+
+        calico_policy["spec"]["egress"][0]["action"] = user_data["action"]
+        calico_policy["spec"]["egress"][0]["destination"]["namespaceSelector"] = f"projectcalico.org/name == {user_data['source_namespace']}"
+        calico_policy["spec"]["egress"][0]["destination"]["selector"] = f"projectcalico.org/name == {user_data['source_app_label']}"
+
+        print("After Calico Policy")
+        print(calico_policy)
+        kube_api_client = client.CustomObjectsApi()
+
+        try:
+            api_response = kube_api_client.patch_namespaced_custom_object(
+                group ="crd.projectcalico.org",
+                version="v1",
+                namespace=user_data['target_namespace'],
+                plural="networkpolicies",
+                body=calico_policy,
+                name=user_data['name']
+            )
+            self.respond(200, "Resource Updated")
+        except client.exceptions.ApiException as e:
+            print("Exception when calling CustomObjectsApi->patch_namespaced_custom_object: %s\n" % e)
+            self.respond(e.status, e.body)
+
+        print("INFO: Done with policy update")
+
+
+def read_calico_policy_json_file():
+    cwd = os.getcwd()
+    policy_json_file = os.path.join(cwd, 'crd_policies/calico/v1_calico_deny_ns_label.json')
+    with open(policy_json_file) as f:
+        return json.load(f)
 
 
 def get_kubernetes_version(api_client: client.ApiClient) -> str:
