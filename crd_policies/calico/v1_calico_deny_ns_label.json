@@ -11,8 +11,9 @@
     "ingress": [
       {
         "action": "Deny",
+        "protocol": "TCP",
         "source": {
-          "namespaceSelector": "projectcalico.org/name == 'nsdev'",
+          "namespaceSelector": "name == 'nsdev'",
           "selector": "app == 'busybox-dev'"
         }
       }
@@ -20,8 +21,9 @@
     "egress": [
       {
         "action": "Deny",
+        "protocol": "TCP",
         "destination": {
-          "namespaceSelector": "projectcalico.org/name == 'nsdev'",
+          "namespaceSelector": "name == 'nsdev'",
           "selector": "app == 'busybox-dev'"
         }
       }
