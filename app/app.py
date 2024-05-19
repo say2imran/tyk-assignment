@@ -34,7 +34,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif url_path == "/networkpolicies":
             self.get_network_polices()
 
-        elif url_path == "/k8s/server/status":
+        elif url_path == "/k8s/api/health":
             self.kubernetes_api_server_health_status()
         else:
             self.send_error(404)
@@ -122,7 +122,7 @@ class AppHandler(BaseHTTPRequestHandler):
         config.load_kube_config(self.kube_config)
         kube_api_client_custom = client.CustomObjectsApi()
         custom_policies = kube_api_client_custom.list_cluster_custom_object(
-            group ="crd.projectcalico.org",
+            group="crd.projectcalico.org",
             version="v1",
             plural="networkpolicies",
         )
@@ -140,7 +140,8 @@ class AppHandler(BaseHTTPRequestHandler):
         calico_policy["spec"]["ingress"][0]["source"]["selector"] = f"app == '{user_data['source_app_label']}'"
 
         calico_policy["spec"]["egress"][0]["action"] = user_data["action"]
-        calico_policy["spec"]["egress"][0]["destination"]["namespaceSelector"] = f"app == '{user_data['target_namespace']}'"
+        calico_policy["spec"]["egress"][0]["destination"][
+            "namespaceSelector"] = f"app == '{user_data['target_namespace']}'"
         calico_policy["spec"]["egress"][0]["destination"]["selector"] = f"app == '{user_data['target_app_label']}'"
         # pprint.pprint(calico_policy)
 
@@ -148,7 +149,7 @@ class AppHandler(BaseHTTPRequestHandler):
         print("INFO: Creating resource")
         try:
             api_response = kube_api_client.create_namespaced_custom_object(
-                group ="crd.projectcalico.org",
+                group="crd.projectcalico.org",
                 version="v1",
                 namespace=user_data['target_namespace'],
                 plural="networkpolicies",
@@ -176,7 +177,8 @@ class AppHandler(BaseHTTPRequestHandler):
         calico_policy["spec"]["ingress"][0]["source"]["selector"] = f"app == '{user_data['source_app_label']}'"
 
         calico_policy["spec"]["egress"][0]["action"] = user_data["action"]
-        calico_policy["spec"]["egress"][0]["destination"]["namespaceSelector"] = f"app == '{user_data['target_namespace']}'"
+        calico_policy["spec"]["egress"][0]["destination"][
+            "namespaceSelector"] = f"app == '{user_data['target_namespace']}'"
         calico_policy["spec"]["egress"][0]["destination"]["selector"] = f"app == '{user_data['target_app_label']}'"
 
         print("INFO: Calico Policy", calico_policy)
@@ -184,7 +186,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
         try:
             api_response = kube_api_client.patch_namespaced_custom_object(
-                group ="crd.projectcalico.org",
+                group="crd.projectcalico.org",
                 version="v1",
                 namespace=user_data['target_namespace'],
                 plural="networkpolicies",
@@ -203,7 +205,7 @@ class AppHandler(BaseHTTPRequestHandler):
         kube_api_client = client.CustomObjectsApi()
         try:
             api_response = kube_api_client.delete_namespaced_custom_object(
-                group ="crd.projectcalico.org",
+                group="crd.projectcalico.org",
                 version="v1",
                 namespace=user_data['target_namespace'],
                 plural="networkpolicies",
@@ -225,14 +227,14 @@ class AppHandler(BaseHTTPRequestHandler):
 
         try:
             health_response = kube_api_client.call_api(resource_path="/healthz",
-                                        method="GET",
-                                        query_params={"verbose": "true"},
-                                        response_type='str',
-                                        _return_http_data_only=False,
-                                        header_params={"Accept": "application/json"},
-                                        collection_formats=dict(fields=None))
+                                                       method="GET",
+                                                       query_params={"verbose": "true"},
+                                                       response_type='str',
+                                                       _return_http_data_only=False,
+                                                       header_params={"Accept": "application/json"},
+                                                       collection_formats=dict(fields=None))
 
-            self.respond(200, str(health_response[0]))
+            self.respond(health_response[1], str(health_response[0]))
 
         except client.exceptions.ApiException as e:
             self.respond(e.status, e.body)
@@ -269,7 +271,7 @@ def start_server(address, kube_config):
         print("invalid server address format")
         return
 
-    with socketserver.TCPServer((host, int(port)), lambda *args, **kwargs: AppHandler(kube_config, *args, **kwargs)) as httpd:
+    with socketserver.TCPServer((host, int(port)),
+                                lambda *args, **kwargs: AppHandler(kube_config, *args, **kwargs)) as httpd:
         print("Server listening on {}".format(address))
         httpd.serve_forever()
-
