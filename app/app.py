@@ -5,7 +5,6 @@ from http.server import BaseHTTPRequestHandler
 from prettytable import PrettyTable
 from urllib.parse import urlparse, parse_qs
 import json
-import pprint
 import os
 
 
@@ -34,6 +33,9 @@ class AppHandler(BaseHTTPRequestHandler):
 
         elif url_path == "/networkpolicies":
             self.get_network_polices()
+
+        elif url_path == "/k8s/server/status":
+            self.kubernetes_api_server_health_status()
         else:
             self.send_error(404)
 
@@ -215,6 +217,25 @@ class AppHandler(BaseHTTPRequestHandler):
         except client.exceptions.ApiException as e:
             self.respond(e.status, e.body)
         print("INFO: Done with policy deletion")
+
+    def kubernetes_api_server_health_status(self):
+        """Responds with the status of the Kubernetes API server"""
+        config.load_kube_config(self.kube_config)
+        kube_api_client = client.ApiClient()
+
+        try:
+            health_response = kube_api_client.call_api(resource_path="/healthz",
+                                        method="GET",
+                                        query_params={"verbose": "true"},
+                                        response_type='str',
+                                        _return_http_data_only=False,
+                                        header_params={"Accept": "application/json"},
+                                        collection_formats=dict(fields=None))
+
+            self.respond(200, str(health_response[0]))
+
+        except client.exceptions.ApiException as e:
+            self.respond(e.status, e.body)
 
 
 def read_calico_policy_json_file():
