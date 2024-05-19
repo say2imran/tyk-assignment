@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@4
+        uses: actions/checkout@3
 
       - name: Build Tyk Image
         run: docker build . -t tyk-image:v1.0.0
