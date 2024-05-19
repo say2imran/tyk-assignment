@@ -40,5 +40,7 @@ kind: Namespace
 metadata:
   creationTimestamp: null
   name: nsdev
+  labels:
+    app: busybox-dev
 spec: {}
 status: {}

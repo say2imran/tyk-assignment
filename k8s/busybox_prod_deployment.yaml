@@ -42,5 +42,8 @@ kind: Namespace
 metadata:
   creationTimestamp: null
   name: nsprod
+  labels:
+    app: busybox-prod
+
 spec: {}
 status: {}
