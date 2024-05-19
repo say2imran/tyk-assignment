@@ -9,6 +9,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@4
-      - name: Build Tyk image
+      - name: Checkout Code and Build Tyk Image
+        uses: actions/checkout@4
         run: docker build . -t tyk-image:v1.0.0
