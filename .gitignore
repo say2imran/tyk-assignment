@@ -1,0 +1,9 @@
+.idea
+.venv
+__pycache__
+app/__pychache__/**
+app/__pycache__/app.cpython-310.pyc
+tyk-sre-assignment
+app/test_kubernetes_client.py
+k8s/apiserver.crt
+k8s/apiserver.key
