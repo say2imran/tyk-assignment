@@ -1,0 +1,14 @@
+name: Build my Tyk image
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@4
+      - name: Build Tyk image
+        run: docker build . -t tyk-image:v1.0.0
