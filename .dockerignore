@@ -7,3 +7,4 @@ __pycache__
 env
 venv
 extras/k8s_manifest_for_testing_netpol
+helm
