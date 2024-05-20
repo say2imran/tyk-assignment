@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: tyk-dev
+  labels:
+    app: tyk-dev
+  name: tyk-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tyk-dev
+  template:
+    metadata:
+      labels:
+        app: tyk-dev
+    spec:
+      containers:
+      - image: say2imran/tyk-image:1.0.0
+        name: tyk-image
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+status: {}
