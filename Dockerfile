@@ -3,10 +3,11 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY app crd_policies main.py /app/
+COPY crd_policies main.py /app/
+COPY app /app/app/
 
-ENV KUBECONFIG=$KUBECONFIG
+ENV KUBECONFIG=/app/kubeconfig/client.config
 ENV PORT=8080
 EXPOSE ${PORT}
 
-CMD ["python", "app/main.py", "--kubeconfig", "${KUBECONFIG}", "--address", ":${PORT}"]
+CMD ["python", "main.py", "--kubeconfig", "${KUBECONFIG}", "--address", ":${PORT}"]
