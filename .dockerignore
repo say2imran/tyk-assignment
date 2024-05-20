@@ -6,4 +6,4 @@ __pycache__
 .Python
 env
 venv
-k8s
+extras/k8s_manifest_for_testing_netpol
