@@ -1,0 +1,6 @@
+appName: "tyk"
+env: "dev"
+pullPolicy: "Always"
+dockerRepo: "say2imran"
+imageName: "tyk-image"
+imageVersion: "1.0.0"
