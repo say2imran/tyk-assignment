@@ -15,9 +15,13 @@ spec:
       labels:
         app: tyk-dev
     spec:
+      hostNetwork: true
       containers:
       - image: say2imran/tyk-image:1.0.0
         name: tyk-image
+        volumeMounts:
+          - name: kube-config
+            mountPath: /app/kubeconfig/
         resources:
           requests:
             memory: "64Mi"
@@ -25,4 +29,16 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "100m"
+        ports:
+          - containerPort: 8081
+        imagePullPolicy: Always
+        env:
+          - name: KUBECONFIG
+            value: "/app/kubeconfig/client.config"
+          - name: PORT
+            value: "8081"
+      volumes:
+        - name: kube-config
+          hostPath:
+            path: /var/snap/microk8s/current/credentials/
 status: {}
