@@ -10,4 +10,4 @@ ENV KUBECONFIG=/app/kubeconfig/client.config
 ENV PORT=8080
 EXPOSE ${PORT}
 
-CMD ["python", "main.py", "--kubeconfig", "${KUBECONFIG}", "--address", ":${PORT}"]
+CMD python main.py --kubeconfig ${KUBECONFIG} --address :${PORT}
